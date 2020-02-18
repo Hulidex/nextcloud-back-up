@@ -1,38 +1,100 @@
 #+author: Jolu Izquierdo
-#+title: Nextcloud back up Script
+#+title: Backup Nextcloud server
 
 * Overview
-Copy all the important configuration data from Nextcloud into a Block device
-like an USB or external device, hence, you can restore them if something with
-Nextcloud goes wrong, you can follow their official (and Manual) way of backing
-up things:[[https://docs.nextcloud.com/server/18/admin_manual/maintenance/backup.html][[Nextcloud Admin guide] - Backup]] or you can use my automatic approach
-based on that guide, It's up to you!
-
-* Requirements
-
+Maybe you want to copy all the important data from your Nextcloud service into a
+Block device like an USB or external device, hence, you can restore them if
+something with Nextcloud goes wrong, you can follow their official (and Manual)
+way of backing up things: [[https://docs.nextcloud.com/server/18/admin_manual/maintenance/backup.html][Nextcloud Admin guide - Backup]] or you can use my
+automatic approach based on that guide and save you time, It’s up to you!
+* TODO Requirements
 Only linux-based systems, python version >= 3.7, backing up of the database only
 for postgresql, root permissions, packages
 
+I tested on a raspbian buster
 * What can really do the script for me right now?
+As I said the script follows the official Next cloud's documentation which in
+short tells you only a few steps:
+
+- Enable rescue mode :: That way, users and the actions that they can
+  do in Nextcloud are limited until you finish with the maintenance.
+- Backup the main important folders :: That is copy the ~data~, ~config~, and
+  ~themes~ folders into a different place.
+- Backup the database you are using :: All the stuff about your files and
+  modules are usually save by Nextcloud into some database, so this is a really
+  important step.
+- Disable rescue mode :: Thus your users and you can use the service again :)
+
+To summarize, there are only four steeps, but those steps could need a lot of
+previous work depending on how you want to save things.
+
+You probably want to use and external device to store those files on even a
+remote device installed somewhere else (best approach and not implemented yet),
+because storing things just in another folder in your operating system doesn't
+make any sense, if the device brakes you will probably lose everything with it.
+So you will need to mount an external device into your system if you decide to
+store it an external driven, or deal with passwords and authentication if you
+are using a remote drive. Maybe you want to store some things in a specific
+device and some others in another one. And you have to do all those steps
+manually and in the meantime your service is frozen and your users (or even you)
+can't use it properly, therefore a fast and automatic script is needed, and it
+actually spends only a few seconds on a Raspberry pi 3 without synchronizing the
+~data~ folder, depending of the type of backup (incremental or complete) and the
+size of the folder that operation can take from seconds to hours...
+
+Yes! Jolu I agree with you, but what can your script actually do?
 
 - Mount and Unmount the back device when need it, that way the device is
   disconnected from the operating system most of the time, avoiding unnecessary
   writings and therefore extending the device life.
+- Make some useful checks on the backup device and notify the user if some
+  requirement is not satisfied.
+- Make the necessary backups, right now they are all grouped together, and they
+  all complete backups, not incremental. At the moment this script is not suited
+  for backing up the ~data~ folder if it has a lot of size (More that 50 GB).
+  *WARNING: I'm using Nextcloud with posgresql so is the only supported database
+  at the moment, I don't want to support the other databases until I can test if
+  they work or not*
+- Compatibly with ~crontab~ jobs, that way you can make the backups periodically
+  in the system without worry.
 
-* Download, and update the script
+* TODO Some important considerations
 
+Use a device with enough space, at the moment the script don't check if the
+device has the proper size for the backup.
+
+The script is an alpha version, *use it and your own risk*, I'm using it in my
+production environment with much care (and love <3) because it could breaks
+things. Don't worry It can't break Nextcloud, but it could messy with the backups if the
+device get full.
+
+The first version will be released when all the features in the section future
+improvements are done.
+* TODO Download, and update the script
 * Configure the script
+** TODO Setting variables
+** TODO Adding the script to a cronjob
+Before adding the script to a ~cronjob~,I recommend to run the script in a
+terminal and make sure that everything works correctly.
 
 * Future improvements
+
 - [ ] Back up others databases not only ~postgresql~
+- [ ] Check if the device is full and do some actions decided by the user, like
+  empty space.
+- [ ] Exclude
+- [ ] Email the user when something wrong happened.
 - [ ] Create a file structure instead of having everything in a single file.
+- [ ] Permit to define where the ~data~ folder is.
+- [ ] Make incremental copies of the ~data~ folder.
 - [ ] Set most of the configuration variables from ~config/config.php~
 - [ ] Manage a maximum number of back-ups in the device.
+- [ ] Permit remote devices as backup devices.
 - [ ] Create an interactive Script to configure everything, like the USB uuid,
   that way the user can forget about it. And properly setting the script into
   the system with ~crontab~.
 - [ ] Ability to chose a different device with different properties for backing
   up the Nextcloud ~data~ folder, instead of using the same device for
   everything.
-- [ ] Recover Back up Utility
- -[ ] Unit Testing
+- [ ] Utility for recover back ups.
+ -[ ] Testing
