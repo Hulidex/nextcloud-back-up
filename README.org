@@ -1,0 +1,38 @@
+#+author: Jolu Izquierdo
+#+title: Nextcloud back up Script
+
+* Overview
+Copy all the important configuration data from Nextcloud into a Block device
+like an USB or external device, hence, you can restore them if something with
+Nextcloud goes wrong, you can follow their official (and Manual) way of backing
+up things:[[https://docs.nextcloud.com/server/18/admin_manual/maintenance/backup.html][[Nextcloud Admin guide] - Backup]] or you can use my automatic approach
+based on that guide, It's up to you!
+
+* Requirements
+
+Only linux-based systems, python version >= 3.7, backing up of the database only
+for postgresql, root permissions, packages
+
+* What can really do the script for me right now?
+
+- Mount and Unmount the back device when need it, that way the device is
+  disconnected from the operating system most of the time, avoiding unnecessary
+  writings and therefore extending the device life.
+
+* Download, and update the script
+
+* Configure the script
+
+* Future improvements
+- [ ] Back up others databases not only ~postgresql~
+- [ ] Create a file structure instead of having everything in a single file.
+- [ ] Set most of the configuration variables from ~config/config.php~
+- [ ] Manage a maximum number of back-ups in the device.
+- [ ] Create an interactive Script to configure everything, like the USB uuid,
+  that way the user can forget about it. And properly setting the script into
+  the system with ~crontab~.
+- [ ] Ability to chose a different device with different properties for backing
+  up the Nextcloud ~data~ folder, instead of using the same device for
+  everything.
+- [ ] Recover Back up Utility
+ -[ ] Unit Testing
