@@ -7,11 +7,58 @@ Block device like an USB or external device, hence, you can restore them if
 something with Nextcloud goes wrong, you can follow their official (and Manual)
 way of backing up things: [[https://docs.nextcloud.com/server/18/admin_manual/maintenance/backup.html][Nextcloud Admin guide - Backup]] or you can use my
 automatic approach based on that guide and save you time, It’s up to you!
-* TODO Requirements
-Only linux-based systems, python version >= 3.7, backing up of the database only
-for postgresql, root permissions, packages
 
-I tested on a raspbian buster
+My natal language isn't English, and I'm a novice with python, therefore
+mistakes in my writing and coding are assured, please go easy on me, and think
+that if I'm forcing myself to write in English, probably the reason is that I'm
+trying my best to learn it, furthermore if you check any mistake (in the
+documentation or in the code) please make a /pull request/ with the fix, and I
+beg you, be respectful, think that I'm spending my time on make this tiny
+project available to the public for sharing some knowledge and learn more from
+my mistakes, thank you so much! :).
+
+*Please read all this guide carefully to fully understand everything, I won't
+take any responsibility if you mess things though it's very difficult to break
+something, in fact the script only copy things from one place to another
+without overwriting anything*
+
+* Requirements
+For the proper execution of the script some requirements are needed, I think
+that the script is compatible with any Linux machine with the proper packages
+and a well configured python 3 environment, nevertheless I want to put an
+extensive list of requirements just in case the script doesn't work in your
+machine:
+
+- This script is implemented using /python/ >= 3.7
+- This script is platform dependent it only support Linux-based systems.
+- The following commands are used in some point by the script, make sure that
+  they are in your system. If you don't know if one command/package is on your
+  system you can use the following command:
+  #+BEGIN_SRC bash
+whereis COMMAND # For example whereis lsblk
+  #+END_SRC
+  - lsblk
+  - rsync
+  - mount
+  - umount
+- The script *MUST* be executed with *root* permissions, they are needed for
+  mount and unmount block devices and accessing to the Nextcloud folders and
+  copy things from there.
+- The script only support an external drive formatted with an *ext4* file
+  system, other file system will issue problems with /rsync/ because some
+  properties of the files like ownership and permissions depends of *ext4* and
+  if you try to copy files keeping those permissions into a different file system
+  that don't support them, rsync will complain.
+- For now only Nextcloud with /PostgreSQL/ databases are supported.
+- At the moment the configuration is performed by editing some variables inside
+  the Script so a little knowledge of python language is needed, at least
+  manipulating python variables.
+- The script is only tested on my Nextcloud environment (Raspbian Buster), so I
+  don't know if it has any side effects on other operating systems.
+- My Nextcloud service is installed into an Apache server, I don't taste it in
+  Nginx servers or inside a Docker machine, I'm telling this because there's
+  many ways of installing Nextcloud.
+
 * What can really do the script for me right now?
 As I said the script follows the official Next cloud's documentation which in
 short tells you only a few steps:
@@ -31,7 +78,7 @@ previous work depending on how you want to save things.
 You probably want to use and external device to store those files on even a
 remote device installed somewhere else (best approach and not implemented yet),
 because storing things just in another folder in your operating system doesn't
-make any sense, if the device brakes you will probably lose everything with it.
+make any sense, if the device breaks you will probably lose everything with it.
 So you will need to mount an external device into your system if you decide to
 store it an external driven, or deal with passwords and authentication if you
 are using a remote drive. Maybe you want to store some things in a specific
@@ -58,9 +105,8 @@ Yes! Jolu I agree with you, but what can your script actually do?
 - Compatibly with ~crontab~ jobs, that way you can make the backups periodically
   in the system without worry.
 
-* TODO Some important considerations
-
-Use a device with enough space, at the moment the script don't check if the
+* Some important considerations
+Use an external device with enough space, at the moment the script don't check if the
 device has the proper size for the backup.
 
 The script is an alpha version, *use it and your own risk*, I'm using it in my
@@ -68,17 +114,221 @@ production environment with much care (and love <3) because it could breaks
 things. Don't worry It can't break Nextcloud, but it could messy with the backups if the
 device get full.
 
-The first version will be released when all the features in the section future
+The first version (1.0.0) will be released when all the features in the section: future
 improvements are done.
-* TODO Download, and update the script
-* Configure the script
-** TODO Setting variables
-** TODO Adding the script to a cronjob
-Before adding the script to a ~cronjob~,I recommend to run the script in a
-terminal and make sure that everything works correctly.
 
+* Download
+#+BEGIN_SRC bash
+git clone https://github.com/Hulidex/nextcloud-back-up.git ~/.nextcloud-backup
+#+END_SRC
+
+The command below will create ~.nextcloud-backup~ folder inside your home directory.
+The ~master~ branch _will contain the more stable and tested version_, nevertheless
+if you want to have more features change to ~dev~ branch:
+#+BEGIN_SRC bash
+git checkout dev
+#+END_SRC
+
+*Note*: _If you change from one branch to another, you have to reinstall the script_.
+
+* Update
+#+BEGIN_SRC bash
+git pull
+#+END_SRC
+
+* Configure and install the script
+** Set variables
+*** Preparing everything
+1. Make sure that you are the *root* user, to log into the system as a root user
+   you can use the command:
+  #+BEGIN_SRC bash
+  sudo su
+  #+END_SRC
+2. You have to *move* the script into a more secure location that your
+   ~home~ directory, because we will insert some passwords in plain text and we
+   don't want anybody to see them:
+  #+BEGIN_SRC bash
+    mkdir -p /opt/nextcloud-backup
+    cp ~/.nextcloud-backup/backup.py /opt/nextcloud-backup
+  #+END_SRC
+3. At last, you have to make sure that only the *root* user has the ability to
+   read, write and execute in that folder:
+  #+BEGIN_SRC bash
+    chown -R root:root /opt/nextcloud-backup
+    chmod -R 700 /opt/nextxloud-backup
+  #+END_SRC
+
+*Note*: It's very important than you don't edit or delete the files inside ~
+~/.nextcloud-backup~ otherwise you won't be able to update the script and I
+don't recommend you to have a copy of the script in your user space with
+passwords and sensible information from your Nextcloud service. The ownership of
+the script is *ONLY* for the *root* user, no one else, only the *root* user can
+_read, write and execute the script_. If you don't know why we're doing, please
+read with attention the next section.
+
+*** Important assumptions that I'm making [optional reading]
+I'm assuming that in your system the *root* user has their own
+password, _and no other user can execute a command in their name without knowing
+their password_. For example if I'm running the command:
+#+BEGIN_SRC bash
+sudo su # Or any other command with sudo
+#+END_SRC
+The system will ask me the *root*'s password, _and my user's password is not a
+valid one_, if this is not your case, and your user can execute *root* commands,
+your machine is at risk, you should edit the ~sudoers~ file and configure it
+properly.
+
+Other thing to take into account, is that your machine shouldn't permit login
+with the *root* user when you're performing a ssh connection: you should log
+with a user with the minimum permissions over the machine, and if you want to do
+things that require a higher privileges, then you can use the *root* user by
+typing their personal password, but notice that you logged first with your user
+without privileges via ssh, that way you make things a little bit more
+complicated for an attacker, if they manage to compromise your ssh conection and
+enter in your machine, they need to compromise the system as well to scale
+privileges and make some damage or steal some information.
+
+*** Setting the variables
+Open the file that we copied in the previous sections with your editor of
+confidence, I like use neovim, but nano, or other terminal editor you're
+comfortable with should be fine:
+#+BEGIN_SRC bash
+nvim /opt/nextcloud-backup/backup.py
+#+END_SRC
+
+Go to the section /CONFIG/, there you will find the following variables:
+
+- NEXTCLOUD_ROOT_FOLDER :: Here you have to put the *ABSOLUTE PATH* to your
+  Nextcloud web-server *ROOT* folder. Because I have installed Nextcloud into an
+  /Apache HTTP server/, I placed the Nextcloud files in
+  ~/var/www/html/nextcloud~, *WARNING*: Don't add the character /// at the end
+  of the path, or the script may fail in some point, an invalid path will be:
+  ~/var/www/html/nextcloud/~
+- PART_UUID :: Your backup device UUID. In my case I'm using an external drive,
+  with only one partition, formatted with an *ext4* file-system, I can list my
+  block devices with the command:
+  #+BEGIN_SRC bash
+  lsblk
+  #+END_SRC
+  It will produce and output similar to:
+  #+begin_example
+  NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+  sda           8:0    1   29G  0 disk <---- This is my usb
+  └─sda1        8:1    1   29G  0 part  <--- And this is the partition I want to use for the backups
+  <OTHER INFORMATION OMITTED>
+  #+end_example
+  To wonder what's your partition UUID, you have to run the following command:
+  #+BEGIN_SRC bash
+  blkid /dev/sda1
+  #+END_SRC
+  It will produce and output similar to:
+  #+begin_example
+  /dev/sda1: LABEL="NEXTCLOUD_BACK_U" UUID="alksjdfkljasklfj" TYPE="ext4" PARTUUID="afasdfasf"
+  #+end_example
+  The correct value is the one contained in /UUID/: "alksjdfkljasklfj" in my
+  example.
+- UNMOUNT_DEVICE :: By default it value is =True=, but you can set it to =False=
+  if you don't want that your device unmounted every time the script finishes.
+  Why this value is =True= by default? Because I consider that the best way to
+  extend the life of the device is by only using it when we need to: just mount
+  it for the backup and when it finishes unmount the device, if the device is
+  always mounted, the operating system will sometimes perform some actions, and
+  if the system power off unexpectedly, the device will too augmenting the
+  probability of device failure. If it is unmounted the operating system will
+  threat it like it's unplugged.
+- DATABASE :: Now the only supported value here is /postgresql/, sorry if you
+  are using another.
+- DATABASE_USER :: The database user who have fully access to the Nextcloud database
+- DATABASE_NAME :: The database name used for Nextcloud
+- DATABASE_PASSWD :: The password for accessing the database
+
+The last four variables can be guessed from the ~config.php~ file present in all
+Nextcloud web-servers, therefore, you can look there, I will try to make an
+agent in the future to configure the Script and define all those variables
+automatically, that way you don't have to touch any file, just run the agent and
+answer the questions they ask you, please be patient.
+
+** Add the script to crontab
+Once the script is configured, you can install it in your system, therefore, it
+will automatically trigger the backup process when you desire.
+
+There are a lot of ways to execute a script periodically in a Linux
+environment, but the one which I feel more comfortable with and it's available in
+most of the Linux environments out of the box without the need of install
+anything is Crontab, hence we will use that tool.
+
+*Note*: Before adding the script to ~crontab~,I recommend to _run the script
+in a terminal and make sure that everything works correctly_.
+
+*** Test the Script
+For running the script for the first time and check if it runs successfully:
+#+BEGIN_SRC bash
+/opt/nextcloud-backup/backup.py
+#+END_SRC
+
+If no output is showed, in most of the cases the script work correctly, even so
+you can mount your back up device and check if all the files are there. Remember
+the script will create the following folder tree:
+
+- The first level will be the year when the backup took place.
+- The second level will be the month when the backup took place.
+- The third the day
+- And the fourth and final one the hour.
+
+Example: Assuming that today is *21/02/2020 13:30* and that I'm running the script for
+the first time, my backup device will have the following directory structure:
+#+begin_example
+[/your_mount_point] (Device mountpoint)
+      |___[2020/]
+            |___[02/]
+                  |___[21/]
+                        |___[1330]
+                              |__[config/] (Nextcloud 'config' folder)
+                              |      |__config.php
+                              |      |__...
+                              |__[data/] (Nextcloud 'data' folder)
+                              |      |__ ...
+                              |__nextcloud_db.back (Nextcloud's database backup)
+                              |__[themes/] (Nextcloud 'themes' folder)
+                                    |__ ...
+#+end_example
+
+*** Add the script to crontab
+Once everything is configured and tested we can create a new cronjob with our
+script, I will not enter on how to manage crontab here, there's tons of
+tutorials out of there, please check some of them if you want to change the
+periodicity of the script to fit your needs. Here I will configure the script to
+make a backup at 00:15 every day.
+
+We need to add a cronjob as the *root* user:
+#+BEGIN_SRC bash
+export EDITOR=nvim && crontab -u root -e
+#+END_SRC
+
+Notice that you can set the /EDITOR/ environment variable to your editor of choice.
+Then we have to add the following line:
+#+BEGIN_SRC crontab
+15 0 * * * /opt/nextcloud-backup/backup.py > /var/log/nextcloud_backup 2>&1
+#+END_SRC
+
+The script will create a log file in ~/var/log/nextcloud_backup~ check some time
+the file to see if an error is produced.
+
+A tiny cheat-sheet of the syntax used in that file:
+
+#+BEGIN_SRC
+ * * * * *      command to execute
+-----------------------------------------------
+ | | | | |
+ | | | | |______ day of week (0-6) (Sunday=0)
+ | | | |________ month (1-12)
+ | | |__________ day of the month (1-31)
+ | |____________ hour (0-23)
+ |______________ minute (0-59)
+#+END_SRC
+
+* TODO Troubleshooting
 * Future improvements
-
 - [ ] Back up others databases not only ~postgresql~
 - [ ] Check if the device is full and do some actions decided by the user, like
   empty space.
@@ -97,4 +347,4 @@ terminal and make sure that everything works correctly.
   up the Nextcloud ~data~ folder, instead of using the same device for
   everything.
 - [ ] Utility for recover back ups.
- -[ ] Testing
+- [ ] Testing.
