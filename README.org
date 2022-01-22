@@ -149,13 +149,18 @@ git pull
    don't want anybody to see them:
   #+BEGIN_SRC bash
     mkdir -p /opt/nextcloud-backup
+  #+END_SRC
+  #+BEGIN_SRC bash
     cp ~/.nextcloud-backup/backup.py /opt/nextcloud-backup
   #+END_SRC
 3. At last, you have to make sure that only the *root* user has the ability to
    read, write and execute in that folder:
   #+BEGIN_SRC bash
     chown -R root:root /opt/nextcloud-backup
-    chmod -R 700 /opt/nextxloud-backup
+  #+END_SRC
+  
+  #+BEGIN_SRC bash
+    chmod -R 700 /opt/nextcloud-backup
   #+END_SRC
 
 *Note*: It's very important than you don't edit or delete the files inside ~
