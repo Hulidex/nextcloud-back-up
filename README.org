@@ -246,6 +246,8 @@ Go to the section /CONFIG/, there you will find the following variables:
 - DATABASE_USER :: The database user who have fully access to the Nextcloud database
 - DATABASE_NAME :: The database name used for Nextcloud
 - DATABASE_PASSWD :: The password for accessing the database
+- DATABASE_HOST :: The ip address where the database is available.
+- DATABASE_PORT :: The port where the databse is listening.
 
 The last four variables can be guessed from the ~config.php~ file present in all
 Nextcloud web-servers, therefore, you can look there, I will try to make an

@@ -223,6 +223,12 @@ DATABASE_NAME = ''
 # Database password
 DATABASE_PASSWD = ''
 
+# Database host
+DATABASE_HOST = 'localhost'
+
+# Database port
+DATABASE_PORT = '5432'
+
 ###############################################################################
 #                                     MAIN                                    #
 ###############################################################################
@@ -266,7 +272,8 @@ if __name__ == '__main__':
     if DATABASE == 'postgresql':
         os.environ['PGPASSWORD'] = DATABASE_PASSWD
         command = ['pg_dump', DATABASE_NAME, '-U', DATABASE_USER, '-f',
-                   f'{backup_folder}/nextcloud_db.bak']
+           f'{backup_folder}/nextcloud_db.bak', '-h', DATABASE_HOST,
+           '-p', DATABASE_PORT]
         out, err = run_cmd(command)
         if err:
             nextcloud_rescue_mode(enable=False)
